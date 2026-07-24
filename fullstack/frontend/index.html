@@ -1,79 +1,181 @@
+<!-- 
+  File: fullstack/frontend/index.html
+  Level: Middle (Fullstack)
+  Topik: React Frontend dengan CDN
+
+  Frontend React sederhana untuk Todo CRUD.
+  Menggunakan React via CDN (tanpa bundler/webpack).
+  Berkomunikasi dengan Go API di localhost:8080.
+
+  Fitur:
+  - List semua todos
+  - Tambah todo baru
+  - Toggle done/undone
+  - Hapus todo
+
+  Cara menjalankan:
+  1. Jalankan backend: cd fullstack/api && go run main.go
+  2. Buka file ini di browser (double click)
+  3. Atau: python3 -m http.server 3000
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Go CRUD Todo</title>
+
+  <!-- React via CDN -->
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- Babel untuk JSX transpilation -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
   <style>
-    body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
-    .todo-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-    .done { text-decoration: line-through; color: #888; }
-    button { background: #007bff; color: white; border: none; padding: 5px 10px; cursor: pointer; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 { color: #333; }
+    .todo-item {
+      padding: 10px;
+      background: white;
+      margin: 5px 0;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .done {
+      text-decoration: line-through;
+      color: #888;
+    }
+    input {
+      padding: 8px;
+      flex: 1;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      margin-left: 5px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
     button:hover { background: #0056b3; }
     button.delete { background: #dc3545; }
     button.delete:hover { background: #c82333; }
+    .input-group { display: flex; margin-bottom: 20px; }
   </style>
 </head>
 <body>
   <div id="root"></div>
+
+  <!-- React component dengan JSX -->
   <script type="text/babel">
     const { useState, useEffect } = React;
 
+    // API base URL - sesuaikan dengan backend Go
+    const API_URL = 'http://localhost:8080';
+
+    // Komponen utama App
     function App() {
+      // State: todos dan title input
       const [todos, setTodos] = useState([]);
       const [title, setTitle] = useState('');
+      const [loading, setLoading] = useState(true);
 
+      // useEffect: mengambil data dari API saat komponen dimuat
       useEffect(() => {
-        fetch('http://localhost:8080/todos')
-          .then(res => res.json())
-          .then(data => setTodos(data));
+        fetchTodos();
       }, []);
 
+      // Fungsi untuk mengambil semua todos dari API
+      const fetchTodos = () => {
+        setLoading(true);
+        fetch(`${API_URL}/todos`)
+          .then(res => res.json())
+          .then(data => {
+            setTodos(data);
+            setLoading(false);
+          })
+          .catch(err => {
+            console.error('Error fetching todos:', err);
+            setLoading(false);
+          });
+      };
+
+      // Fungsi untuk menambah todo baru
       const addTodo = () => {
         if (!title.trim()) return;
-        fetch('http://localhost:8080/todos', {
+
+        fetch(`${API_URL}/todos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title, done: false })
         })
         .then(res => res.json())
-        .then(newTodo => setTodos([...todos, newTodo]));
-        setTitle('');
+        .then(newTodo => {
+          setTodos([...todos, newTodo]); // tambah ke state
+          setTitle(''); // reset input
+        })
+        .catch(err => console.error('Error adding todo:', err));
       };
 
-      const toggleTodo = (id, done) => {
+      // Fungsi untuk toggle status done/undone
+      const toggleTodo = (id, currentDone) => {
         const todo = todos.find(t => t.id === id);
-        fetch(`http://localhost:8080/todo?id=${id}`, {
+
+        fetch(`${API_URL}/todo?id=${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...todo, done: !done })
+          body: JSON.stringify({ ...todo, done: !currentDone })
         })
         .then(res => res.json())
         .then(updated => {
           setTodos(todos.map(t => t.id === id ? updated : t));
-        });
+        })
+        .catch(err => console.error('Error updating todo:', err));
       };
 
+      // Fungsi untuk menghapus todo
       const deleteTodo = (id) => {
-        fetch(`http://localhost:8080/todo?id=${id}`, { method: 'DELETE' })
-          .then(() => setTodos(todos.filter(t => t.id !== id)));
+        fetch(`${API_URL}/todo?id=${id}`, { method: 'DELETE' })
+          .then(() => {
+            setTodos(todos.filter(t => t.id !== id));
+          })
+          .catch(err => console.error('Error deleting todo:', err));
       };
 
+      // Render komponen
       return (
         <div>
-          <h1>Todo List (Go API)</h1>
-          <div>
-            <input 
+          <h1>Todo List <small style={{fontSize:'14px',color:'#888'}}>(Go API)</small></h1>
+
+          {/* Input form */}
+          <div className="input-group">
+            <input
               value={title}
               onChange={e => setTitle(e.target.value)}
               onKeyPress={e => e.key === 'Enter' && addTodo()}
-              placeholder="Tambah todo baru"
+              placeholder="Tambah todo baru..."
             />
             <button onClick={addTodo}>Add</button>
           </div>
+
+          {/* Loading indicator */}
+          {loading && <p>Loading...</p>}
+
+          {/* List todos */}
+          {!loading && todos.length === 0 && <p>Belum ada todo. Tambahkan!</p>}
+
           {todos.map(todo => (
             <div key={todo.id} className="todo-item">
               <span className={todo.done ? 'done' : ''}>
@@ -83,7 +185,9 @@
                 <button onClick={() => toggleTodo(todo.id, todo.done)}>
                   {todo.done ? 'Undo' : 'Done'}
                 </button>
-                <button className="delete" onClick={() => deleteTodo(todo.id)}>X</button>
+                <button className="delete" onClick={() => deleteTodo(todo.id)}>
+                  X
+                </button>
               </div>
             </div>
           ))}
@@ -91,6 +195,7 @@
       );
     }
 
+    // Render React app ke DOM
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>

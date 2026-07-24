@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package todo;
+
+option go_package = "todo/";
+
+service TodoService {
+    rpc AddTodo (AddTodoRequest) returns (Todo);
+    rpc ListTodos (Empty) returns (TodoList);
+    rpc GetTodo (GetTodoRequest) returns (Todo);
+}
+
+message Todo {
+    int32 id = 1;
+    string title = 2;
+    bool done = 3;
+}
+
+message AddTodoRequest {
+    string title = 1;
+}
+
+message GetTodoRequest {
+    int32 id = 1;
+}
+
+message TodoList {
+    repeated Todo todos = 1;
+}
+
+message Empty {}
+
+// Generate:
+// go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+// go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+// protoc --go_out=. --go-grpc_out=. proto/todo.proto

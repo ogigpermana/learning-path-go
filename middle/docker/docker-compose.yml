@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - ENV=production
+    volumes:
+      - ./data:/root/data
+    restart: unless-stopped
+
+  # Example with postgres
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: goapp
+      POSTGRES_USER: goapp
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

@@ -1,67 +1,56 @@
-# Tutorial Go untuk Pengguna Mahir
+# Tutorial Go Level Mahir
 
-## Daftar Isi
-1. Microservices dengan gRPC
-2. Docker & Kubernetes
-3. CI/CD Pipeline
-4. Performance Optimization
-5. Security Best Practices
+Level mahir mencakup topik-topik production-grade: arsitektur microservices, deployment, CI/CD, dan optimisasi.
 
-## 1. Microservices dengan gRPC
+## Topik
 
-```
-protoc --go_out=. --go-grpc_out=. proto/todo.proto
-```
+| # | Topik | Deskripsi | File | Cara Run |
+|---|-------|-----------|------|----------|
+| 1 | **gRPC** | High-performance RPC dengan Protocol Buffers | [grpc/proto/todo.proto](grpc/proto/todo.proto) | `protoc --go_out=. --go-grpc_out=. proto/todo.proto` |
+| 2 | **Kubernetes** | Deployment, Service, HPA (auto-scaling) | [kubernetes/deployment.yaml](kubernetes/deployment.yaml) | `kubectl apply -f deployment.yaml` |
+| 3 | **CI/CD** | GitHub Actions: test → build → docker → deploy | [cicd/.github/workflows/go.yml](cicd/.github/workflows/go.yml) | Push ke GitHub → otomatis jalan |
+| 4 | **Profiling** | Pprof, race detector, benchmark, fan-out pattern | [profiling/main.go](profiling/main.go) | `go run profiling/main.go` |
+| 5 | **Design Patterns** | Repository, Factory, Builder, Singleton di Go | [design-patterns/main.go](design-patterns/main.go) | `go run design-patterns/main.go` |
+| 6 | **WebSocket** | Real-time bidirectional communication | [websocket/main.go](websocket/main.go) | `go run websocket/main.go` |
+| 7 | **GraphQL** | Flexible API query language | [graphql/main.go](graphql/main.go) | `go run graphql/main.go` |
 
-## 2. Dockerize
+## Instalasi Dependensi
 
-Dockerfile:
-```dockerfile
-FROM golang:1.22-alpine AS builder
-WORKDIR /app
-COPY . .
-RUN go build -o main .
+```bash
+# gRPC tools
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
-COPY --from=builder /app/main .
-CMD ["./main"]
-```
+# WebSocket
+cd websocket && go get github.com/gorilla/websocket
 
-Build: `docker build -t go-todo .`
-
-## 3. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: go-todo
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: go-todo
-  template:
-    metadata:
-      labels:
-        app: go-todo
-    spec:
-      containers:
-      - name: go-todo
-        image: go-todo:latest
-        ports:
-        - containerPort: 8080
+# GraphQL
+cd graphql && go get github.com/graphql-go/graphql
 ```
 
-## 4. Performance
+## Commands Penting
 
-- Profiling: `go tool pprof`
-- Memory: `go test -memprofile=mem.out`
+```bash
+# Profiling
+go test -bench=. -cpuprofile=cpu.out -memprofile=mem.out
+go tool pprof -http=:8081 cpu.out
 
-## 5. Security
+# Race detection
+go run -race main.go
+go test -race ./...
 
-- Validation library
-- JWT authentication
-- Rate limiting
+# Build untuk production
+GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o app .
+# ldflags -s -w: strip debug info (smaller binary)
+
+# WebAssembly (eksekusi Go di browser)
+GOOS=js GOARCH=wasm go build -o main.wasm
+```
+
+## Prasyarat
+
+Sebelum masuk level mahir, pastikan sudah paham:
+- ✅ Semua topik beginner (exercises/)
+- ✅ Semua topik middle (context, testing, middleware, database)
+- ✅ Docker dasar
+- ✅ HTTP & REST API
