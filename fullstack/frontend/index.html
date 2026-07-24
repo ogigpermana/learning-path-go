@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Go CRUD Todo</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
+    .todo-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .done { text-decoration: line-through; color: #888; }
+    button { background: #007bff; color: white; border: none; padding: 5px 10px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    button.delete { background: #dc3545; }
+    button.delete:hover { background: #c82333; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function App() {
+      const [todos, setTodos] = useState([]);
+      const [title, setTitle] = useState('');
+
+      useEffect(() => {
+        fetch('http://localhost:8080/todos')
+          .then(res => res.json())
+          .then(data => setTodos(data));
+      }, []);
+
+      const addTodo = () => {
+        if (!title.trim()) return;
+        fetch('http://localhost:8080/todos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, done: false })
+        })
+        .then(res => res.json())
+        .then(newTodo => setTodos([...todos, newTodo]));
+        setTitle('');
+      };
+
+      const toggleTodo = (id, done) => {
+        const todo = todos.find(t => t.id === id);
+        fetch(`http://localhost:8080/todo?id=${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...todo, done: !done })
+        })
+        .then(res => res.json())
+        .then(updated => {
+          setTodos(todos.map(t => t.id === id ? updated : t));
+        });
+      };
+
+      const deleteTodo = (id) => {
+        fetch(`http://localhost:8080/todo?id=${id}`, { method: 'DELETE' })
+          .then(() => setTodos(todos.filter(t => t.id !== id)));
+      };
+
+      return (
+        <div>
+          <h1>Todo List (Go API)</h1>
+          <div>
+            <input 
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              onKeyPress={e => e.key === 'Enter' && addTodo()}
+              placeholder="Tambah todo baru"
+            />
+            <button onClick={addTodo}>Add</button>
+          </div>
+          {todos.map(todo => (
+            <div key={todo.id} className="todo-item">
+              <span className={todo.done ? 'done' : ''}>
+                {todo.title}
+              </span>
+              <div>
+                <button onClick={() => toggleTodo(todo.id, todo.done)}>
+                  {todo.done ? 'Undo' : 'Done'}
+                </button>
+                <button className="delete" onClick={() => deleteTodo(todo.id)}>X</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
